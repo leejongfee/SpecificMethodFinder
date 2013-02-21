@@ -123,6 +123,49 @@ public class SpecificMethodFinder {
 		}
 	}
 
+	private static String parseGetCode(String codeTxt) {
+		String parseResult = "";
+		int stringIndexTemp = codeTxt.indexOf("\t") + 1;
+		codeTxt = codeTxt.substring(stringIndexTemp);
+		stringIndexTemp = codeTxt.indexOf("\n");
+		codeTxt = codeTxt.substring(0, stringIndexTemp);
+		stringIndexTemp = codeTxt.indexOf("(");
+		if (stringIndexTemp > 0) {
+			String methodName = codeTxt.substring(0, stringIndexTemp).trim();
+			codeTxt = codeTxt.substring(stringIndexTemp);
+			stringIndexTemp = codeTxt.indexOf(")") + 1;
+			String ParametersName = codeTxt.substring(0, stringIndexTemp);
+			parseResult = methodName + parseParameters(ParametersName);
+		}
+		return parseResult;
+	}
+
+	private static String parseParameters(String paramName) {
+		String rearStr = paramName;
+		List<String> paramList = new ArrayList<String>();
+		StringBuffer sb = new StringBuffer();
+		sb.append("(");
+		while (true) {
+			if (rearStr.contains(";")) {
+				int firstSemicolon = rearStr.indexOf(";");
+				String frontStr = rearStr.substring(0, firstSemicolon);
+				frontStr = frontStr.substring(frontStr.lastIndexOf("/") + 1);
+				paramList.add(frontStr);
+				rearStr = rearStr.substring(firstSemicolon + 1);
+			} else
+				break;
+		}
+		for (int i = 0; i < paramList.size(); i++) {
+			if (i == paramList.size() - 1) {
+				sb.append(paramList.get(i));
+			} else {
+				sb.append(paramList.get(i) + ",");
+			}
+		}
+		sb.append(")");
+		return sb.toString();
+	}
+
 	private static boolean isSpecificMethod(Method m, String methodName) {
 		Code c = m.getCode();
 		String codeTxt = c.toString();
@@ -131,19 +174,16 @@ public class SpecificMethodFinder {
 			if (codeTxt.contains("invoke")) {
 				int start = codeTxt.indexOf("invoke");
 				codeTxt = codeTxt.substring(start);
+				if (methodName.equals(parseGetCode(codeTxt))) {
+					result = true;
+				}
 				int end = codeTxt.indexOf("(");
 				if (end != -1 && start != -1) {
-					String invokeName = codeTxt.substring(0, end - 1);
 					codeTxt = codeTxt.substring(end);
-					start = invokeName.lastIndexOf(".") + 1;
-					if (invokeName.substring(start).equals(methodName)) {
-						result = true;
-					}
 				} else
 					break;
-			} else {
+			} else
 				break;
-			}
 		}
 		return result;
 	}
