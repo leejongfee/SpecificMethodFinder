@@ -84,11 +84,9 @@ public class SpecificMethodFinder {
 
 	private static void readZip(String path, List<JavaClass> methodList) {
 		try {
-			// FileInputStream으로 파일을 읽은 후 ZipInputStream으로 변환
 			FileInputStream fis = new FileInputStream(path);
 			ZipInputStream zis = new ZipInputStream(fis);
 			ZipEntry ze;
-			// ZipEntry가 있는 동안 반복
 			while ((ze = zis.getNextEntry()) != null) {
 				if (ze.getName().endsWith(".class")) {
 					classesTotal++;
@@ -124,7 +122,7 @@ public class SpecificMethodFinder {
 	}
 
 	private static String parseGetCode(String codeTxt) {
-		String parseResult = "";
+		String parseResult = null;
 		int stringIndexTemp = codeTxt.indexOf("\t") + 1;
 		codeTxt = codeTxt.substring(stringIndexTemp);
 		stringIndexTemp = codeTxt.indexOf("\n");
@@ -197,27 +195,29 @@ public class SpecificMethodFinder {
 		if (lastIndex != -1) {
 			paramName = paramName.substring(0, lastIndex);
 		}
-		return paramName+")";
+		return paramName + ")";
 	}
 
 	private static boolean isSpecificMethod(Method m, String methodName) {
 		Code c = m.getCode();
-		String codeTxt = c.toString();
 		boolean result = false;
-		while (true) {
-			if (codeTxt.contains("invoke")) {
-				int start = codeTxt.indexOf("invoke");
-				codeTxt = codeTxt.substring(start);
-				if (methodName.equals(parseGetCode(codeTxt))) {
-					result = true;
-				}
-				int end = codeTxt.indexOf("(");
-				if (end != -1 && start != -1) {
-					codeTxt = codeTxt.substring(end);
+		if (c != null) {
+			String codeTxt = c.toString();
+			while (true) {
+				if (codeTxt.contains("invoke")) {
+					int start = codeTxt.indexOf("invoke");
+					codeTxt = codeTxt.substring(start);
+					if (methodName.equals(parseGetCode(codeTxt))) {
+						result = true;
+					}
+					int end = codeTxt.indexOf("(");
+					if (end != -1 && start != -1) {
+						codeTxt = codeTxt.substring(end);
+					} else
+						break;
 				} else
 					break;
-			} else
-				break;
+			}
 		}
 		return result;
 	}
