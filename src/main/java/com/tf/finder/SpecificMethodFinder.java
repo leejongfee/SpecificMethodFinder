@@ -132,6 +132,7 @@ public class SpecificMethodFinder {
 		stringIndexTemp = codeTxt.indexOf("(");
 		if (stringIndexTemp > 0) {
 			String methodName = codeTxt.substring(0, stringIndexTemp).trim();
+			methodName = changeInitName(methodName);
 			codeTxt = codeTxt.substring(stringIndexTemp);
 			stringIndexTemp = codeTxt.indexOf(")") + 1;
 			String ParametersName = codeTxt.substring(0, stringIndexTemp);
@@ -140,30 +141,63 @@ public class SpecificMethodFinder {
 		return parseResult;
 	}
 
+	private static String changeInitName(String methodName) {
+		int stringIndexTemp = methodName.lastIndexOf(".") + 1;
+		if (methodName.substring(stringIndexTemp).equals("<init>")) {
+			String lastStr = methodName.substring(0, stringIndexTemp - 1);
+			stringIndexTemp = lastStr.lastIndexOf(".") + 1;
+			methodName = lastStr + "." + lastStr.substring(stringIndexTemp);
+		}
+		return methodName;
+	}
+
 	private static String parseParameters(String paramName) {
+		String parameters;
 		String rearStr = paramName;
 		List<String> paramList = new ArrayList<String>();
 		StringBuffer sb = new StringBuffer();
 		sb.append("(");
-		while (true) {
-			if (rearStr.contains(";")) {
-				int firstSemicolon = rearStr.indexOf(";");
-				String frontStr = rearStr.substring(0, firstSemicolon);
-				frontStr = frontStr.substring(frontStr.lastIndexOf("/") + 1);
-				paramList.add(frontStr);
-				rearStr = rearStr.substring(firstSemicolon + 1);
-			} else
-				break;
-		}
-		for (int i = 0; i < paramList.size(); i++) {
-			if (i == paramList.size() - 1) {
-				sb.append(paramList.get(i));
-			} else {
-				sb.append(paramList.get(i) + ",");
+		if (rearStr.contains(";")) {
+			while (true) {
+				if (rearStr.contains(";")) {
+					int firstSemicolon = rearStr.indexOf(";");
+					String frontStr = rearStr.substring(0, firstSemicolon);
+					frontStr = frontStr
+							.substring(frontStr.lastIndexOf("/") + 1);
+					paramList.add(frontStr);
+					rearStr = rearStr.substring(firstSemicolon + 1);
+				} else
+					break;
 			}
+			for (int i = 0; i < paramList.size(); i++) {
+				if (i == paramList.size() - 1) {
+					sb.append(paramList.get(i));
+				} else {
+					sb.append(paramList.get(i) + ",");
+				}
+			}
+			sb.append(")");
+			parameters = sb.toString();
+		} else {
+			parameters = changeTypeName(paramName);
 		}
-		sb.append(")");
-		return sb.toString();
+		return parameters;
+	}
+
+	private static String changeTypeName(String paramName) {
+		paramName = paramName.replaceAll("I", "int,");
+		paramName = paramName.replaceAll("B", "byte,");
+		paramName = paramName.replaceAll("C", "char,");
+		paramName = paramName.replaceAll("D", "double,");
+		paramName = paramName.replaceAll("F", "float,");
+		paramName = paramName.replaceAll("J", "long,");
+		paramName = paramName.replaceAll("S", "short,");
+		paramName = paramName.replaceAll("Z", "boolean,");
+		int lastIndex = paramName.lastIndexOf(",");
+		if (lastIndex != -1) {
+			paramName = paramName.substring(0, lastIndex);
+		}
+		return paramName+")";
 	}
 
 	private static boolean isSpecificMethod(Method m, String methodName) {
