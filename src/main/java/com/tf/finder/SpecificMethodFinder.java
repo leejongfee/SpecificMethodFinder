@@ -49,6 +49,7 @@ public class SpecificMethodFinder {
 			for (Method m : getsetters) {
 				getsetterTotal++;
 				System.out.println("\t" + m);
+				//System.out.println("\t" + m.getCode());
 			}
 		}
 	}
@@ -193,9 +194,9 @@ public class SpecificMethodFinder {
 		paramName = paramName.replaceAll("Z", "boolean,");
 		int lastIndex = paramName.lastIndexOf(",");
 		if (lastIndex != -1) {
-			paramName = paramName.substring(0, lastIndex);
+			paramName = paramName.substring(0, lastIndex)+")";
 		}
-		return paramName + ")";
+		return paramName ;
 	}
 
 	private static boolean isSpecificMethod(Method m, String methodName) {
