@@ -156,7 +156,6 @@ public class SpecificMethodFinder {
 		sb.append("(");
 		while (true) {
 			if (rearStr.length() > 1) {
-				rearStr = rearStr.replace("$", "."); // enum 클래스의 경로인 $를 .로 변환
 				if (rearStr.startsWith("L")) {
 					int semiColon = rearStr.indexOf(";");
 					sb.append(rearStr.substring(1, semiColon).replace("/", "."));
