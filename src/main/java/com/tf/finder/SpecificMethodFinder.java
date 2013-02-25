@@ -49,7 +49,7 @@ public class SpecificMethodFinder {
 			for (Method m : getsetters) {
 				getsetterTotal++;
 				System.out.println("\t" + m);
-				//System.out.println("\t" + m.getCode());
+				// System.out.println("\t" + m.getCode());
 			}
 		}
 	}
@@ -151,36 +151,30 @@ public class SpecificMethodFinder {
 	}
 
 	private static String parseParameters(String paramName) {
-		String parameters;
-		String rearStr = paramName;
-		List<String> paramList = new ArrayList<String>();
+		String rearStr = paramName.substring(1);
 		StringBuffer sb = new StringBuffer();
 		sb.append("(");
-		if (rearStr.contains(";")) {
-			while (true) {
-				if (rearStr.contains(";")) {
-					int firstSemicolon = rearStr.indexOf(";");
-					String frontStr = rearStr.substring(0, firstSemicolon);
-					frontStr = frontStr
-							.substring(frontStr.lastIndexOf("/") + 1);
-					paramList.add(frontStr);
-					rearStr = rearStr.substring(firstSemicolon + 1);
-				} else
-					break;
-			}
-			for (int i = 0; i < paramList.size(); i++) {
-				if (i == paramList.size() - 1) {
-					sb.append(paramList.get(i));
-				} else {
-					sb.append(paramList.get(i) + ",");
+		while (true) {
+			if (rearStr.length() > 1) {
+				rearStr = rearStr.replace("$", "."); // enum 클래스의 경로인 $를 .로 변환
+				if (rearStr.startsWith("L")) {
+					int semiColon = rearStr.indexOf(";");
+					sb.append(rearStr.substring(1, semiColon).replace("/", "."));
+					sb.append(",");
+					rearStr = rearStr.substring(semiColon + 1);
+				} else if (!rearStr.startsWith(")")) {
+					sb.append(changeTypeName(rearStr.substring(0, 1)));
+					rearStr = rearStr.substring(1);
 				}
+			} else {
+				if (sb.lastIndexOf(",") != -1) {
+					sb.deleteCharAt(sb.lastIndexOf(","));
+				}
+				break;
 			}
-			sb.append(")");
-			parameters = sb.toString();
-		} else {
-			parameters = changeTypeName(paramName);
 		}
-		return parameters;
+		sb.append(")");
+		return sb.toString();
 	}
 
 	private static String changeTypeName(String paramName) {
@@ -192,11 +186,7 @@ public class SpecificMethodFinder {
 		paramName = paramName.replaceAll("J", "long,");
 		paramName = paramName.replaceAll("S", "short,");
 		paramName = paramName.replaceAll("Z", "boolean,");
-		int lastIndex = paramName.lastIndexOf(",");
-		if (lastIndex != -1) {
-			paramName = paramName.substring(0, lastIndex)+")";
-		}
-		return paramName ;
+		return paramName;
 	}
 
 	private static boolean isSpecificMethod(Method m, String methodName) {
