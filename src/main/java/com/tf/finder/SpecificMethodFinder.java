@@ -7,7 +7,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
-
 import org.apache.bcel.classfile.ClassParser;
 import org.apache.bcel.classfile.Code;
 import org.apache.bcel.classfile.JavaClass;
@@ -15,11 +14,10 @@ import org.apache.bcel.classfile.Method;
 
 public class SpecificMethodFinder {
 	static int classesTotal;
-	static int methodsTotal;
-	static int getsetterTotal;
+	static int methodTotal;
 
 	public static void main(String[] args) throws Exception {
-		String methodName = args[1];
+		String methodName = setPackageName(args[1]);
 		List<JavaClass> classList = new ArrayList<JavaClass>();
 		SpecificMethodFinder.findClasses(args[0], classList);
 		for (JavaClass jc : classList) {
@@ -32,7 +30,44 @@ public class SpecificMethodFinder {
 		System.out.println("Total # of classes : "
 				+ SpecificMethodFinder.classesTotal);
 		System.out.println("Total # of Method call " + methodName + " : "
-				+ SpecificMethodFinder.getsetterTotal);
+				+ SpecificMethodFinder.methodTotal);
+	}
+
+	static String setPackageName(String methodName) {
+		StringBuffer sb = new StringBuffer();
+		sb.append("(");
+		int front = methodName.indexOf("(") + 1;
+		int rear = methodName.indexOf(")");
+		String paramNames = methodName.substring(front, rear);
+		if (paramNames.length() != 0) {
+			while (true) {
+				rear = paramNames.indexOf(",");
+				if (rear > 0) {
+					sb.append(changePrimitiveVar(paramNames.substring(0, rear)));
+					sb.append(",");
+					rear = paramNames.indexOf(",");
+					paramNames = paramNames.substring(rear + 1);
+				} else {
+					sb.append(changePrimitiveVar(paramNames));
+					break;
+				}
+			}
+		}
+		sb.append(")");
+		methodName = methodName.substring(0,front-1)+sb.toString();
+		return methodName;
+	}
+
+	static String changePrimitiveVar(String var) {
+		if (!var.contains(".")) {
+			if (!var.equals("int") && !var.equals("long")
+					&& !var.equals("double") && !var.equals("float")
+					&& !var.equals("short") && !var.equals("char")
+					&& !var.equals("byte")&&!var.equals("boolean")) {
+				var = "java.lang."+var;
+			}
+		}
+		return var;
 	}
 
 	static void printSpecificMethod(JavaClass jc, String methodName) {
@@ -47,9 +82,8 @@ public class SpecificMethodFinder {
 		if (getsetters.size() > 0) {
 			System.out.println("Class : " + jc.getClassName());
 			for (Method m : getsetters) {
-				getsetterTotal++;
+				methodTotal++;
 				System.out.println("\t" + m);
-				// System.out.println("\t" + m.getCode());
 			}
 		}
 	}
