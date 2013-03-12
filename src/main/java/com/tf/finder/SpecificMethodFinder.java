@@ -21,7 +21,7 @@ public class SpecificMethodFinder {
 		List<JavaClass> classList = new ArrayList<JavaClass>();
 		SpecificMethodFinder.findClasses(args[0], classList);
 		for (JavaClass jc : classList) {
-			if (jc.isAbstract() || jc.isInterface()) {
+			if (jc.isInterface()) {
 			} else {
 				SpecificMethodFinder.printSpecificMethod(jc, methodName);
 			}
@@ -54,17 +54,17 @@ public class SpecificMethodFinder {
 			}
 		}
 		sb.append(")");
-		methodName = methodName.substring(0,front-1)+sb.toString();
+		methodName = methodName.substring(0, front - 1) + sb.toString();
 		return methodName;
 	}
 
 	static String changePrimitiveVar(String var) {
-		if (!var.contains(".")) {
+		if (!var.contains(".") && !var.contains("[")) {
 			if (!var.equals("int") && !var.equals("long")
 					&& !var.equals("double") && !var.equals("float")
 					&& !var.equals("short") && !var.equals("char")
-					&& !var.equals("byte")&&!var.equals("boolean")) {
-				var = "java.lang."+var;
+					&& !var.equals("byte") && !var.equals("boolean")) {
+				var = "java.lang." + var;
 			}
 		}
 		return var;
@@ -75,8 +75,10 @@ public class SpecificMethodFinder {
 		Method[] methods = jc.getMethods();
 		for (int i = 0; i < methods.length; i++) {
 			Method method = methods[i];
-			if (isSpecificMethod(method, methodName)) {
-				getsetters.add(method);
+			if (!method.isAbstract()) {
+				if (isSpecificMethod(method, methodName)) {
+					getsetters.add(method);
+				}
 			}
 		}
 		if (getsetters.size() > 0) {
@@ -84,6 +86,7 @@ public class SpecificMethodFinder {
 			for (Method m : getsetters) {
 				methodTotal++;
 				System.out.println("\t" + m);
+				// System.out.println("\t" + m.getCode());
 			}
 		}
 	}
@@ -171,6 +174,7 @@ public class SpecificMethodFinder {
 			String ParametersName = codeTxt.substring(0, stringIndexTemp);
 			parseResult = methodName + parseParameters(ParametersName);
 		}
+		// System.out.println(parseResult);
 		return parseResult;
 	}
 
@@ -195,8 +199,13 @@ public class SpecificMethodFinder {
 					sb.append(rearStr.substring(1, semiColon).replace("/", "."));
 					sb.append(",");
 					rearStr = rearStr.substring(semiColon + 1);
+				} else if (rearStr.startsWith("[")) {
+					sb.append(changeArrayTypeName(rearStr));
+					sb.append(",");
+					rearStr = rearStr.substring(2);
 				} else if (!rearStr.startsWith(")")) {
 					sb.append(changeTypeName(rearStr.substring(0, 1)));
+					sb.append(",");
 					rearStr = rearStr.substring(1);
 				}
 			} else {
@@ -210,15 +219,20 @@ public class SpecificMethodFinder {
 		return sb.toString();
 	}
 
+	private static String changeArrayTypeName(String paramName) {
+		paramName = changeTypeName(paramName.substring(1, 2)) + "[]";
+		return paramName;
+	}
+
 	private static String changeTypeName(String paramName) {
-		paramName = paramName.replaceAll("I", "int,");
-		paramName = paramName.replaceAll("B", "byte,");
-		paramName = paramName.replaceAll("C", "char,");
-		paramName = paramName.replaceAll("D", "double,");
-		paramName = paramName.replaceAll("F", "float,");
-		paramName = paramName.replaceAll("J", "long,");
-		paramName = paramName.replaceAll("S", "short,");
-		paramName = paramName.replaceAll("Z", "boolean,");
+		paramName = paramName.replaceAll("I", "int");
+		paramName = paramName.replaceAll("B", "byte");
+		paramName = paramName.replaceAll("C", "char");
+		paramName = paramName.replaceAll("D", "double");
+		paramName = paramName.replaceAll("F", "float");
+		paramName = paramName.replaceAll("J", "long");
+		paramName = paramName.replaceAll("S", "short");
+		paramName = paramName.replaceAll("Z", "boolean");
 		return paramName;
 	}
 
