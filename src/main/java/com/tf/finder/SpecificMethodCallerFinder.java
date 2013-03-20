@@ -7,10 +7,18 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
+
+import org.apache.bcel.Constants;
 import org.apache.bcel.classfile.ClassParser;
 import org.apache.bcel.classfile.Code;
 import org.apache.bcel.classfile.JavaClass;
 import org.apache.bcel.classfile.Method;
+import org.apache.bcel.generic.ClassGen;
+import org.apache.bcel.generic.ConstantPoolGen;
+import org.apache.bcel.generic.InstructionFactory;
+import org.apache.bcel.generic.InstructionHandle;
+import org.apache.bcel.generic.InstructionList;
+import org.apache.bcel.generic.MethodGen;
 
 public class SpecificMethodCallerFinder {
 	static int classesTotal;
@@ -70,24 +78,77 @@ public class SpecificMethodCallerFinder {
 	}
 
 	static void printSpecificMethod(JavaClass jc, String methodName) {
-		List<Method> getsetters = new ArrayList<Method>();
+		List<parsingMethodInfo> getsetters = new ArrayList<parsingMethodInfo>();
 		Method[] methods = jc.getMethods();
+		int invokeIndex = 0;
 		for (int i = 0; i < methods.length; i++) {
 			Method method = methods[i];
 			if (!method.isAbstract()) {
-				if (isSpecificMethod(method, methodName)) {
-					getsetters.add(method);
+				invokeIndex = isSpecificMethod(method, methodName);
+				if (invokeIndex > 0) {
+					parsingMethodInfo pi = new parsingMethodInfo();
+					pi.invokeIndex = invokeIndex;
+					pi.jc = jc;
+					pi.method = method;
+					getsetters.add(pi);
 				}
 			}
 		}
 		if (getsetters.size() > 0) {
 			System.out.println("Class : " + jc.getClassName());
-			for (Method m : getsetters) {
+			for (parsingMethodInfo p : getsetters) {
 				methodTotal++;
-				System.out.println("\t" + m);
-				// System.out.println("\t" + m.getCode());
+				System.out.println("\t" + p.method);
+				editMethod(p);
 			}
 		}
+	}
+
+	static void editMethod(parsingMethodInfo pi) {
+		JavaClass newJc;
+		try {
+			newJc = new ClassParser(
+					"C:/Users/jhLee/workspace/Sample/bin/com/tf/android/GraphicsFactory.class")
+					.parse();
+			Method newMethod = newJc.getMethods()[1];
+			JavaClass jc = pi.jc;
+			Method method = pi.method;
+			int invokIndex = pi.invokeIndex;
+			int methodIndex = getMethodIndex(jc.getMethods(), method);
+			ClassGen cg = new ClassGen(jc);
+			ConstantPoolGen cp = new ConstantPoolGen(jc.getConstantPool());
+			MethodGen mg = new MethodGen(method, jc.getClassName(), cp);
+			InstructionList il = mg.getInstructionList();
+			InstructionHandle ih = il.findHandle(invokIndex);
+			InstructionFactory factory = new InstructionFactory(cg);
+			ih.setInstruction(factory.createInvoke(newJc.getClassName(),
+					newMethod.getName(), newMethod.getReturnType(),
+					newMethod.getArgumentTypes(), Constants.INVOKESTATIC));
+			mg.setInstructionList(il);
+			cg.setMethodAt(mg.getMethod(), methodIndex);
+			jc = cg.getJavaClass();
+			jc.dump(classNameParse(jc.getClassName()) + ".class");
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+	}
+
+	static int getMethodIndex(Method[] methods, Method m) {
+		int methodIndex = 0;
+		for (int i = 0; i < methods.length; i++) {
+			if (methods[i].equals(m)) {
+				methodIndex = i;
+			}
+		}
+		return methodIndex;
+	}
+
+	static String classNameParse(String className) {
+		int lastDot = className.lastIndexOf(".") + 1;
+		if (lastDot > 0) {
+			className = className.substring(lastDot);
+		}
+		return className;
 	}
 
 	static void findClasses(String dirOrZipPath, List<JavaClass> methodList)
@@ -235,17 +296,18 @@ public class SpecificMethodCallerFinder {
 		return paramName;
 	}
 
-	private static boolean isSpecificMethod(Method m, String methodName) {
+	private static int isSpecificMethod(Method m, String methodName) {
 		Code c = m.getCode();
-		boolean result = false;
+		int result = 0;
 		if (c != null) {
 			String codeTxt = c.toString();
 			while (true) {
 				if (codeTxt.contains("invoke")) {
 					int start = codeTxt.indexOf("invoke");
+					String codeTemp = codeTxt.substring(start - 6);
 					codeTxt = codeTxt.substring(start);
 					if (methodName.equals(parseGetCode(codeTxt))) {
-						result = true;
+						result = getInvokeIndex(codeTemp);
 					}
 					int end = codeTxt.indexOf("(");
 					if (end != -1 && start != -1) {
@@ -257,5 +319,22 @@ public class SpecificMethodCallerFinder {
 			}
 		}
 		return result;
+	}
+
+	private static int getInvokeIndex(String code) {
+
+		int index = code.indexOf("invoke");
+		code = code.substring(0, index);
+		index = code.indexOf(":");
+		if (index > 0) {
+			index = Integer.parseInt(code.substring(0, index));
+		}
+		return index;
+	}
+
+	static class parsingMethodInfo {
+		JavaClass jc;
+		Method method;
+		int invokeIndex;
 	}
 }
